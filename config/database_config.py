@@ -6,8 +6,8 @@ DATABASE_CONFIG = {
     'host': 'localhost',
     'port': 3306,
     'user': 'root',
-    'password': '',  # Add your MySQL password here
-    'database': 'indian_market_data',
+    'password': 'admin',  # Add your MySQL password here
+    'database': 'investment_data',
     'charset': 'utf8mb4'
 }
 

@@ -5,7 +5,7 @@ import datetime
 import fire
 import time
 from sqlalchemy import create_engine
-import pymysql
+from config.database_config import get_connection_string
 
 class IndianStockCollector:
     def __init__(self, db_connection_string="mysql+pymysql://root:@127.0.0.1/investment_data"):
@@ -134,7 +134,8 @@ class IndianStockCollector:
         return pd.DataFrame(stock_list)
 
 def main():
-    collector = IndianStockCollector()
+    conn_str = get_connection_string()
+    collector = IndianStockCollector(conn_str)
     
     # Create stock list (compatible with original project)
     stock_list = collector.get_stock_list()
@@ -142,7 +143,7 @@ def main():
     print("Indian stock list created")
     
     # Update stock prices
-    collector.update_stock_prices()
+    collector.update_stock_prices('2025-08-27', '2025-08-29')
 
 if __name__ == '__main__':
     fire.Fire(main)
