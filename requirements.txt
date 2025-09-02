@@ -1,4 +1,7 @@
-tushare==1.2.89
-SQLAlchemy==2.0.29
-pymysql
-fire
+yfinance==0.2.18
+pandas==2.0.3
+numpy==1.24.3
+sqlalchemy==2.0.19
+pymysql==1.1.0
+fire==0.5.0
+requests==2.31.0
