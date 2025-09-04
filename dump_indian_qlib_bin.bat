@@ -6,9 +6,7 @@ REM Set working directory (default to temp folder)
 set WORKING_DIR=%1
 if "%WORKING_DIR%"=="" set WORKING_DIR=%TEMP%\indian_qlib
 
-REM Set Qlib repository
-set QLIB_REPO=%2
-if "%QLIB_REPO%"=="" set QLIB_REPO=https://github.com/microsoft/qlib.git
+REM Qlib is now installed via pip, no repository needed
 
 echo ========================================
 echo Indian Market Data to Qlib Conversion
@@ -26,19 +24,16 @@ echo ✅ Working directory created: %WORKING_DIR%
 echo.
 pause
 
-echo Step 2: Cloning Qlib repository...
-if not exist "%WORKING_DIR%\qlib" (
-    echo Cloning from: %QLIB_REPO%
-    git clone "%QLIB_REPO%" "%WORKING_DIR%\qlib"
-    if errorlevel 1 (
-        echo ❌ Failed to clone Qlib repository
-        echo Please check your internet connection and Git installation
-        pause
-        exit /b 1
-    )
-) else (
-    echo ✅ Qlib repository already exists
+echo Step 2: Installing Qlib package...
+echo Installing Qlib from PyPI...
+pip install qlib
+if errorlevel 1 (
+    echo ❌ Failed to install Qlib package
+    echo Please check your internet connection and pip installation
+    pause
+    exit /b 1
 )
+echo ✅ Qlib package installed successfully
 echo.
 pause
 
@@ -77,9 +72,8 @@ echo ✅ Index weights dumped successfully
 echo.
 pause
 
-echo Step 6: Setting up Python path for Qlib...
-set PYTHONPATH=%PYTHONPATH%;%WORKING_DIR%\qlib\scripts
-echo ✅ Python path updated: %PYTHONPATH%
+echo Step 6: Qlib package is installed and ready to use...
+echo ✅ Qlib package available for import
 echo.
 pause
 
@@ -88,7 +82,7 @@ echo This step uses Qlib data_collector modules...
 python qlib\normalize.py normalize_data --source_dir qlib\qlib_source\ --normalize_dir qlib\qlib_normalize --max_workers=4 --date_field_name=tradedate --symbol_field_name=symbol
 if errorlevel 1 (
     echo ❌ Failed to normalize data
-    echo Please check if Qlib repository is properly cloned
+    echo Please check if Qlib package is properly installed
     pause
     exit /b 1
 )
@@ -98,7 +92,27 @@ pause
 
 echo Step 8: Converting to Qlib binary format...
 echo This step creates the final Qlib binary data...
-python "%WORKING_DIR%\qlib\scripts\dump_bin.py" dump_all --data_path qlib\qlib_normalize\ --qlib_dir "%WORKING_DIR%\indian_qlib_bin" --date_field_name=tradedate --exclude_fields=tradedate,symbol
+python -c "
+import qlib
+import os
+import sys
+
+# Find the qlib scripts directory
+qlib_path = os.path.dirname(qlib.__file__)
+scripts_path = os.path.join(qlib_path, 'scripts')
+if os.path.exists(scripts_path):
+    sys.path.insert(0, scripts_path)
+    from dump_bin import dump_all
+    dump_all(
+        data_path='qlib/qlib_normalize/',
+        qlib_dir='%WORKING_DIR%/indian_qlib_bin',
+        date_field_name='tradedate',
+        exclude_fields=['tradedate', 'symbol']
+    )
+else:
+    print('❌ Qlib scripts directory not found')
+    exit(1)
+"
 if errorlevel 1 (
     echo ❌ Failed to convert to binary format
     echo Please check if normalized data exists

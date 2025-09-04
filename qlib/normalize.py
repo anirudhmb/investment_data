@@ -3,12 +3,20 @@ import pandas as pd
 import sys
 import os
 
-# Add Qlib scripts to Python path
+# Simple Qlib path setup - relies on proper installation via batch file
 def setup_qlib_path():
-    # First check if PYTHONPATH already contains qlib scripts
+    """Setup Qlib path - assumes Qlib is properly installed"""
+    # Check if Qlib is installed as a package (preferred method)
+    try:
+        import qlib
+        print(f"✅ Qlib package found: {qlib.__file__}")
+        return True
+    except ImportError:
+        pass
+    
+    # Fallback: Check PYTHONPATH for qlib scripts
     python_path = os.environ.get('PYTHONPATH', '')
     if python_path:
-        print(f"Current PYTHONPATH: {python_path}")
         for path in python_path.split(os.pathsep):
             if 'qlib' in path and 'scripts' in path:
                 if os.path.exists(path):
@@ -17,48 +25,25 @@ def setup_qlib_path():
                     print(f"✅ Found Qlib scripts via PYTHONPATH: {path}")
                     return True
     
-    # Try to find Qlib repository
-    possible_paths = [
-        os.path.join(os.getcwd(), "qlib"),  # Current directory
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "qlib"),  # Relative to this script
-        os.path.join(os.path.expanduser("~"), "qlib"),  # Home directory
-        "/tmp/indian_qlib/qlib",  # Default working directory
-        os.path.join(os.environ.get('TEMP', '/tmp'), 'indian_qlib', 'qlib'),  # Windows temp directory
-        os.path.join(os.environ.get('TMP', '/tmp'), 'indian_qlib', 'qlib'),   # Alternative temp directory
-    ]
-    
-    for path in possible_paths:
-        scripts_path = os.path.join(path, "scripts")
-        print(f"Checking: {scripts_path}")
-        if os.path.exists(scripts_path):
-            if scripts_path not in sys.path:
-                sys.path.insert(0, scripts_path)
-            print(f"✅ Found Qlib scripts at: {scripts_path}")
-            return True
-    
-    print("❌ Qlib scripts directory not found!")
-    print("Searched in the following locations:")
-    for path in possible_paths:
-        print(f"  - {path}")
-    print("Please ensure Qlib repository is cloned.")
+    print("❌ Qlib not found!")
+    print("Please install Qlib using:")
+    print("pip install qlib")
     return False
 
 # Setup Qlib path before importing
 if not setup_qlib_path():
-    print("Please run: git clone https://github.com/microsoft/qlib.git")
     sys.exit(1)
 
 try:
+    # Import Qlib data_collector modules
     from data_collector.base import Normalize
     from data_collector.yahoo import collector as yahoo_collector
     print("✅ Successfully imported Qlib data_collector modules")
 except ImportError as e:
-    print("============")
-    print("ATTENTION: Need to put qlib/scripts directory into PYTHONPATH")
-    print("Current Python path:")
-    for path in sys.path:
-        print(f"  {path}")
-    print("============")
+    print("❌ Failed to import data_collector modules!")
+    print(f"Error: {e}")
+    print("\nPlease install Qlib using:")
+    print("pip install qlib")
     raise e
 
 class CrowdSourceNormalize(yahoo_collector.YahooNormalizeCN1d):
@@ -71,7 +56,7 @@ class CrowdSourceNormalize(yahoo_collector.YahooNormalizeCN1d):
         result_df["amount"] = df["amount"]
         return result_df
 
-def normalize_crowd_source_data(source_dir=None, normalize_dir=None, max_workers=1, interval="1d", date_field_name="tradedate", symbol_field_name="symbol"):
+def normalize_data(source_dir=None, normalize_dir=None, max_workers=1, interval="1d", date_field_name="tradedate", symbol_field_name="symbol"):
     print(f"Starting normalization with Qlib data_collector...")
     print(f"Source: {source_dir}")
     print(f"Target: {normalize_dir}")
