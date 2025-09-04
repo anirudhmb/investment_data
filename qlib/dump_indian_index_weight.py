@@ -1,13 +1,21 @@
+import sys
+import os
+
+# Add the parent directory to Python path to find config module
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
+
 from sqlalchemy import create_engine
 import pymysql
 import pandas as pd
 import fire
-import os
 import datetime
+from config.database_config import get_connection_string
 
 def dump_indian_index_weight(skip_exists=False):
     """Dump Indian index weights to Qlib format - adapted from original project"""
-    sqlEngine = create_engine('mysql+pymysql://root:@127.0.0.1/investment_data', pool_recycle=3600)
+    sqlEngine = create_engine(get_connection_string(), pool_recycle=3600)
     dbConnection = sqlEngine.raw_connection()
 
     # Indian index mapping (adapted from original project)
