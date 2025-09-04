@@ -45,7 +45,7 @@ ORDER BY symbol;
 
 -- Validation: Check for missing data
 SELECT 
-    symbol,
+    all_stocks.symbol,
     COUNT(*) as missing_days
 FROM (
     SELECT DISTINCT tradedate 

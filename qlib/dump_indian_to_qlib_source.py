@@ -3,10 +3,12 @@ import pymysql
 import pandas as pd
 import fire
 import os
+from config.database_config import get_connection_string
 
 def dump_indian_to_qlib_source(skip_exists=True):
     """Dump Indian market data to Qlib source format - adapted from original project"""
-    sqlEngine = create_engine('mysql+pymysql://root:@127.0.0.1/investment_data', pool_recycle=3600)
+    db_connection_string = get_connection_string()
+    sqlEngine = create_engine(db_connection_string, pool_recycle=3600)
     dbConnection = sqlEngine.raw_connection()
     
     # Query Indian stock data with VWAP calculation (matching original project format)
