@@ -10,49 +10,117 @@ REM Set Qlib repository
 set QLIB_REPO=%2
 if "%QLIB_REPO%"=="" set QLIB_REPO=https://github.com/microsoft/qlib.git
 
-echo Creating working directory...
+echo ========================================
+echo Indian Market Data to Qlib Conversion
+echo ========================================
+echo.
+
+echo Step 1: Creating working directory...
 if not exist "%WORKING_DIR%" mkdir "%WORKING_DIR%"
-
-REM Clone Qlib if not exists
-if not exist "%WORKING_DIR%\qlib" (
-    echo Cloning Qlib repository...
-    git clone "%QLIB_REPO%" "%WORKING_DIR%\qlib"
+if errorlevel 1 (
+    echo ❌ Failed to create working directory: %WORKING_DIR%
+    pause
+    exit /b 1
 )
+echo ✅ Working directory created: %WORKING_DIR%
+echo.
+pause
 
-REM Create qlib source directory
+echo Step 2: Cloning Qlib repository...
+if not exist "%WORKING_DIR%\qlib" (
+    echo Cloning from: %QLIB_REPO%
+    git clone "%QLIB_REPO%" "%WORKING_DIR%\qlib"
+    if errorlevel 1 (
+        echo ❌ Failed to clone Qlib repository
+        echo Please check your internet connection and Git installation
+        pause
+        exit /b 1
+    )
+) else (
+    echo ✅ Qlib repository already exists
+)
+echo.
+pause
+
+echo Step 3: Creating Qlib directories...
 if not exist "qlib\qlib_source" mkdir "qlib\qlib_source"
 if not exist "qlib\qlib_index" mkdir "qlib\qlib_index"
+if errorlevel 1 (
+    echo ❌ Failed to create Qlib directories
+    pause
+    exit /b 1
+)
+echo ✅ Qlib directories created
+echo.
+pause
 
-REM Dump Indian stock data to Qlib source format
-echo Dumping Indian stock data to Qlib source format...
+echo Step 4: Dumping Indian stock data to Qlib source format...
 python qlib\dump_indian_to_qlib_source.py
+if errorlevel 1 (
+    echo ❌ Failed to dump stock data
+    echo Please check your database connection and data
+    pause
+    exit /b 1
+)
+echo ✅ Stock data dumped successfully
+echo.
+pause
 
-REM Dump Indian index weights
-echo Dumping Indian index weights...
+echo Step 5: Dumping Indian index weights...
 python qlib\dump_indian_index_weight.py
+if errorlevel 1 (
+    echo ❌ Failed to dump index weights
+    pause
+    exit /b 1
+)
+echo ✅ Index weights dumped successfully
+echo.
+pause
 
-REM Set up Python path for Qlib
+echo Step 6: Setting up Python path for Qlib...
 set PYTHONPATH=%PYTHONPATH%;%WORKING_DIR%\qlib\scripts
+echo ✅ Python path updated: %PYTHONPATH%
+echo.
+pause
 
-REM Normalize data using Qlib
-echo Normalizing Indian market data...
+echo Step 7: Normalizing Indian market data...
+echo This step uses Qlib data_collector modules...
 python qlib\normalize.py normalize_data --source_dir qlib\qlib_source\ --normalize_dir qlib\qlib_normalize --max_workers=4 --date_field_name=tradedate --symbol_field_name=symbol
+if errorlevel 1 (
+    echo ❌ Failed to normalize data
+    echo Please check if Qlib repository is properly cloned
+    pause
+    exit /b 1
+)
+echo ✅ Data normalization completed
+echo.
+pause
 
-REM Convert to Qlib binary format
-echo Converting to Qlib binary format...
+echo Step 8: Converting to Qlib binary format...
+echo This step creates the final Qlib binary data...
 python "%WORKING_DIR%\qlib\scripts\dump_bin.py" dump_all --data_path qlib\qlib_normalize\ --qlib_dir "%WORKING_DIR%\indian_qlib_bin" --date_field_name=tradedate --exclude_fields=tradedate,symbol
+if errorlevel 1 (
+    echo ❌ Failed to convert to binary format
+    echo Please check if normalized data exists
+    pause
+    exit /b 1
+)
+echo ✅ Binary conversion completed
+echo.
+pause
 
-REM Copy index files to Qlib binary directory
-echo Copying index files...
+echo Step 9: Copying index files...
 if not exist "%WORKING_DIR%\indian_qlib_bin\instruments" mkdir "%WORKING_DIR%\indian_qlib_bin\instruments"
 if exist "qlib\qlib_index\*.txt" (
     copy "qlib\qlib_index\*.txt" "%WORKING_DIR%\indian_qlib_bin\instruments\"
+    echo ✅ Index files copied
 ) else (
-    echo No index files to copy
+    echo ⚠️ No index files to copy
 )
+echo.
+pause
 
-REM Create trading calendar
-echo Creating Indian trading calendar...
+echo Step 10: Creating Indian trading calendar...
 python -c "
 import pandas as pd
 import datetime
@@ -101,23 +169,51 @@ os.makedirs(os.path.dirname(calendar_file), exist_ok=True)
 calendar_data.to_csv(calendar_file, index=False, header=False, sep='\t')
 print(f'Indian trading calendar created: {calendar_file}')
 "
+if errorlevel 1 (
+    echo ❌ Failed to create trading calendar
+    pause
+    exit /b 1
+)
+echo ✅ Trading calendar created
+echo.
+pause
 
-REM Create tarball (using PowerShell since tar might not be available)
-echo Creating tarball...
+echo Step 11: Creating final tarball...
 powershell -Command "Compress-Archive -Path '%WORKING_DIR%\indian_qlib_bin' -DestinationPath 'indian_qlib_bin.zip' -Force"
-
-echo Indian Qlib binary data created successfully!
-echo Tarball location: %CD%\indian_qlib_bin.zip
+if errorlevel 1 (
+    echo ❌ Failed to create tarball
+    pause
+    exit /b 1
+)
+echo ✅ Tarball created: %CD%\indian_qlib_bin.zip
+echo.
+pause
 
 REM Copy to output directory if specified
 set OUTPUT_DIR=%OUTPUT_DIR%
 if not "%OUTPUT_DIR%"=="" (
     if exist "%OUTPUT_DIR%" (
+        echo Step 12: Copying to output directory...
         copy "indian_qlib_bin.zip" "%OUTPUT_DIR%\"
-        echo Tarball copied to: %OUTPUT_DIR%\indian_qlib_bin.zip
+        if errorlevel 1 (
+            echo ❌ Failed to copy to output directory
+            pause
+            exit /b 1
+        )
+        echo ✅ Tarball copied to: %OUTPUT_DIR%\indian_qlib_bin.zip
     )
 )
 
 echo.
-echo Process completed successfully!
+echo ========================================
+echo 🎉 PROCESS COMPLETED SUCCESSFULLY! 🎉
+echo ========================================
+echo.
+echo Final output:
+echo   - Tarball: %CD%\indian_qlib_bin.zip
+echo   - Source files: qlib\qlib_source\
+echo   - Normalized files: qlib\qlib_normalize\
+echo   - Index files: qlib\qlib_index\
+echo.
+echo You can now use this data with Qlib!
 pause
