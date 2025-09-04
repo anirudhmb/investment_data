@@ -5,16 +5,31 @@ import os
 
 # Add Qlib scripts to Python path
 def setup_qlib_path():
+    # First check if PYTHONPATH already contains qlib scripts
+    python_path = os.environ.get('PYTHONPATH', '')
+    if python_path:
+        print(f"Current PYTHONPATH: {python_path}")
+        for path in python_path.split(os.pathsep):
+            if 'qlib' in path and 'scripts' in path:
+                if os.path.exists(path):
+                    if path not in sys.path:
+                        sys.path.insert(0, path)
+                    print(f"✅ Found Qlib scripts via PYTHONPATH: {path}")
+                    return True
+    
     # Try to find Qlib repository
     possible_paths = [
         os.path.join(os.getcwd(), "qlib"),  # Current directory
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "qlib"),  # Relative to this script
         os.path.join(os.path.expanduser("~"), "qlib"),  # Home directory
         "/tmp/indian_qlib/qlib",  # Default working directory
+        os.path.join(os.environ.get('TEMP', '/tmp'), 'indian_qlib', 'qlib'),  # Windows temp directory
+        os.path.join(os.environ.get('TMP', '/tmp'), 'indian_qlib', 'qlib'),   # Alternative temp directory
     ]
     
     for path in possible_paths:
         scripts_path = os.path.join(path, "scripts")
+        print(f"Checking: {scripts_path}")
         if os.path.exists(scripts_path):
             if scripts_path not in sys.path:
                 sys.path.insert(0, scripts_path)
@@ -22,6 +37,9 @@ def setup_qlib_path():
             return True
     
     print("❌ Qlib scripts directory not found!")
+    print("Searched in the following locations:")
+    for path in possible_paths:
+        print(f"  - {path}")
     print("Please ensure Qlib repository is cloned.")
     return False
 
